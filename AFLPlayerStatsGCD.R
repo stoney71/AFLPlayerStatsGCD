@@ -78,6 +78,13 @@ adel_2015[is.na(adel_2015)] <- 0
 
 adel_2015 <- adel_2015[rowSums(adel_2015[, 3:22]) > 0, ]
 
+## add mean disposals, kicks, handballs, Inside50s and other key stats
+
+adel_ave_disp_2015 <- adel_2015 %>% group_by(Player) %>% summarise(Avg.Disposals = mean(Disposals))
+adel_ave_ins50_2015 <- adel_2015 %>% group_by(Player) %>% summarise(Avg.Inside50s = mean(Inside50s))
+
+adel_2015 <- left_join(adel_2015, adel_ave_disp_2015, by = "Player")
+adel_2015 <- left_join(adel_2015, adel_ave_ins50_2015, by = "Player")
 
 #################
 ##
@@ -115,8 +122,11 @@ round_details <- function(df) {
         WinLoss <- rep(NA, nrow(df))
         Margin <- rep(NA, nrow(df))
         Opposition <- rep(NA, nrow(df))
+        Date <- rep(as.Date(NA), nrow(df))
         Venue <- rep(NA, nrow(df))
         for (i in 1:as.integer(nrow(df) / 2)) {
+                Date[2 * i - 1] <- as.Date(df$Remarks[2 * i - 1], format = "%a %d-%b-%Y")
+                Date[2 * i] <- as.Date(df$Remarks[2 * i - 1], format = "%a %d-%b-%Y")
                 Margin[2 * i - 1] <- df$Score[2 * i - 1] - df$Score[2 * i]
                 Margin[2 * i] <- df$Score[2 * i] - df$Score[2 * i - 1]
                 Opposition[2 * i - 1] <- df$Team[2 * i]
@@ -136,7 +146,7 @@ round_details <- function(df) {
                         WinLoss[2 * i] <- "D"
                 }
         }
-        data.frame(WinLoss, Margin, Opposition, Venue)
+        data.frame(Date, WinLoss, Margin, Opposition, Venue)
 }
 
 ## Now create a list of 23 dataframes, each dataframe is a Round, in the desired format.
