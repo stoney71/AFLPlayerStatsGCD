@@ -13,6 +13,11 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 
+clubs <- as.list(c("Adelaide", "Brisbane Lions", "Carlton", "Collingwood", "Essendon",
+           "Fremantle", "Geelong", "Gold Coast", "Greater Western Sydney",
+           "Hawthorn", "Melbourne", "North Melbourne", "Port Adelaide",
+           "Richmond", "St Kilda", "Sydney", "West Coast", "Western Bulldogs"))
+
 #################
 ##
 ##  Section 2
@@ -21,70 +26,115 @@ library(tidyr)
 ##
 #################
 
-## Get game by game stats. So far this is just for Adelaide.
-
-gbg_url <- "http://afltables.com/afl/stats/teams/adelaide/2015_gbg.html"
-
-if(!(file.exists("./files/adelgbg2015.html"))){
-        download.file(gbg_url, destfile="./files/adelgbg2015.html")
+load_gbg_stats <- function(club) {
+        ## special handling for 6 teams
+        if (club == "Brisbane Lions") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/brisbanel/2015_gbg.html"
+        }
+        else if (club == "Greater Western Sydney") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/gws/2015_gbg.html"
+        }
+        else if (club == "North Melbourne") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/kangaroos/2015_gbg.html"
+        }
+        else if (club == "Port Adelaide") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/padelaide/2015_gbg.html"
+        }
+        else if (club == "Sydney") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/swans/2015_gbg.html"
+        }
+        else if (club == "Western Bulldogs") {
+                gbg_url <- "http://afltables.com/afl/stats/teams/bullldogs/2015_gbg.html"
+        }
+        else {
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/", 
+                        tolower(gsub(" ", "", club)), "/2015_gbg.html", sep = "")
+        }
+        
+        gbg_filename <- paste("./files/", gsub(" ", "", club), "_GBG_2015.html", sep = "")
+        
+        if (!file.exists(gbg_filename)) {
+                download.file(gbg_url, destfile = gbg_filename)
+        }
+        return(readHTMLTable(gbg_filename, stringsAsFactors = FALSE))
 }
 
-adel_gbg_2015 <- readHTMLTable("./files/adelgbg2015.html", stringsAsFactors = FALSE)
+list_raw_gbg_2015 <- lapply(clubs, load_gbg_stats)
+names(list_raw_gbg_2015) <- clubs
 
-adel_DI <- adel_gbg_2015[[1]] %>% select(-Tot) %>% gather(Round, Disposals, -Player)
-adel_KI <- adel_gbg_2015[[2]] %>% select(-Tot) %>% gather(Round, Kicks, -Player)
-adel_2015 <- full_join(adel_DI, adel_KI)
-adel_MK <- adel_gbg_2015[[3]] %>% select(-Tot) %>% gather(Round, Marks, -Player)
-adel_2015 <- full_join(adel_2015, adel_MK)
-adel_HB <- adel_gbg_2015[[4]] %>% select(-Tot) %>% gather(Round, Handballs, -Player)
-adel_2015 <- full_join(adel_2015, adel_HB)
-adel_GL <- adel_gbg_2015[[5]] %>% select(-Tot) %>% gather(Round, Goals, -Player)
-adel_2015 <- full_join(adel_2015, adel_GL)
-adel_BH <- adel_gbg_2015[[6]] %>% select(-Tot) %>% gather(Round, Behinds, -Player)
-adel_2015 <- full_join(adel_2015, adel_BH)
-adel_HO <- adel_gbg_2015[[7]] %>% select(-Tot) %>% gather(Round, Hitouts, -Player)
-adel_2015 <- full_join(adel_2015, adel_HO)
-adel_TK <- adel_gbg_2015[[8]] %>% select(-Tot) %>% gather(Round, Tackles, -Player)
-adel_2015 <- full_join(adel_2015, adel_TK)
-adel_RB <- adel_gbg_2015[[9]] %>% select(-Tot) %>% gather(Round, Rebound50s, -Player)
-adel_2015 <- full_join(adel_2015, adel_RB)
-adel_I5 <- adel_gbg_2015[[10]] %>% select(-Tot) %>% gather(Round, Inside50s, -Player)
-adel_2015 <- full_join(adel_2015, adel_I5)
-adel_CL <- adel_gbg_2015[[11]] %>% select(-Tot) %>% gather(Round, Clearances, -Player)
-adel_2015 <- full_join(adel_2015, adel_CL)
-adel_CG <- adel_gbg_2015[[12]] %>% select(-Tot) %>% gather(Round, Clangers, -Player)
-adel_2015 <- full_join(adel_2015, adel_CG)
-adel_FF <- adel_gbg_2015[[13]] %>% select(-Tot) %>% gather(Round, FreesFor, -Player)
-adel_2015 <- full_join(adel_2015, adel_FF)
-adel_FA <- adel_gbg_2015[[14]] %>% select(-Tot) %>% gather(Round, FreesAgainst, -Player)
-adel_2015 <- full_join(adel_2015, adel_FA)
-adel_CP <- adel_gbg_2015[[16]] %>% select(-Tot) %>% gather(Round, ContestedPossessions, -Player)
-adel_2015 <- full_join(adel_2015, adel_CP)
-adel_UP <- adel_gbg_2015[[17]] %>% select(-Tot) %>% gather(Round, UncontestedPossessions, -Player)
-adel_2015 <- full_join(adel_2015, adel_UP)
-adel_CM <- adel_gbg_2015[[18]] %>% select(-Tot) %>% gather(Round, ContestedMarks, -Player)
-adel_2015 <- full_join(adel_2015, adel_CM)
-adel_MI <- adel_gbg_2015[[19]] %>% select(-Tot) %>% gather(Round, MarksInside50, -Player)
-adel_2015 <- full_join(adel_2015, adel_MI)
-adel_OP <- adel_gbg_2015[[20]] %>% select(-Tot) %>% gather(Round, OnePercenters, -Player)
-adel_2015 <- full_join(adel_2015, adel_OP)
-adel_GA <- adel_gbg_2015[[22]] %>% select(-Tot) %>% gather(Round, GoalAssists, -Player)
-adel_2015 <- full_join(adel_2015, adel_GA)
+## remove unwanted stats (eg % game played, sub on/off etc) from each data fram within the lists:
 
-for (i in 3:ncol(adel_2015)) {
-        adel_2015[, i] <- as.numeric(adel_2015[, i])
+list_raw_gbg_2015 <- lapply(list_raw_gbg_2015, function(x) {
+        x <- x[-c(15, 21, 23, 24)]
+})
+
+
+clean_gbg_stats <- function(list_club_stats) {
+        ## a function that gathers eack key stat and combines all into one dataframe
+        ## per club. dplyr::full_join is used to join one by one. This is 'safer'
+        ## than just using cbind to bind all at once.
+        
+        disp <- list_club_stats[[1]] %>% select(-Tot) %>% gather(Round, Disposals, -Player)
+        kicks <- list_club_stats[[2]] %>% select(-Tot) %>% gather(Round, Kicks, -Player)
+        club_stats <- full_join(disp, kicks)
+        marks <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Marks, -Player)
+        club_stats <- full_join(club_stats, marks)
+        hballs <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Handballs, -Player)
+        club_stats <- full_join(club_stats, hballs)
+        goals <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Goals, -Player)
+        club_stats <- full_join(club_stats, goals)
+        behinds <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Behinds, -Player)
+        club_stats <- full_join(club_stats, behinds)
+        hitouts <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Hitouts, -Player)
+        club_stats <- full_join(club_stats, hitouts)
+        tackles <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Tackles, -Player)
+        club_stats <- full_join(club_stats, tackles)
+        r50s <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Rebound50s, -Player)
+        club_stats <- full_join(club_stats, r50s)
+        i50s <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Inside50s, -Player)
+        club_stats <- full_join(club_stats, i50s)
+        clears <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Clearances, -Player)
+        club_stats <- full_join(club_stats, clears)
+        clangs <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Clangers, -Player)
+        club_stats <- full_join(club_stats, clangs)
+        frees_for <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, FreesFor, -Player)
+        club_stats <- full_join(club_stats, frees_for)
+        frees_ag <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, FreesAgainst, -Player)
+        club_stats <- full_join(club_stats, frees_ag)
+        con_pos <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, ContendedPossessions, -Player)
+        club_stats <- full_join(club_stats, con_pos)
+        uncon_pos <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, UncontendedPossessions, -Player)
+        club_stats <- full_join(club_stats, uncon_pos)
+        con_marks <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, ContestedMarks, -Player)
+        club_stats <- full_join(club_stats, con_marks)
+        marks_i50 <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, MarksInside50, -Player)
+        club_stats <- full_join(club_stats, marks_i50)
+        one_pers <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, OnePercenters, -Player)
+        club_stats <- full_join(club_stats, one_pers)
+        goal_ass <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, GoalAssists, -Player)
+        club_stats <- full_join(club_stats, goal_ass)
+        
+        for (i in 3:ncol(club_stats)) {
+                club_stats[, i] <- as.numeric(club_stats[, i])
+        }
+        club_stats[is.na(club_stats)] <- 0
+        
+        club_stats <- club_stats[rowSums(club_stats[, 3:ncol(club_stats)]) > 0, ]
 }
-adel_2015[is.na(adel_2015)] <- 0
 
-adel_2015 <- adel_2015[rowSums(adel_2015[, 3:22]) > 0, ]
+list_gbg_2015 <- lapply(list_raw_gbg_2015, clean_gbg_stats)
+
+gbg_stats_2015 <- ldply(list_gbg_2015)
+colnames(gbg_stats_2015)[1] <- "Team"
+
 
 ## add mean disposals, kicks, handballs, Inside50s and other key stats
 
-adel_ave_disp_2015 <- adel_2015 %>% group_by(Player) %>% summarise(Avg.Disposals = mean(Disposals))
-adel_ave_ins50_2015 <- adel_2015 %>% group_by(Player) %>% summarise(Avg.Inside50s = mean(Inside50s))
+avg_disp <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Disposals = mean(Disposals))
+avg_ins50 <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Inside50s = mean(Inside50s))
 
-adel_2015 <- left_join(adel_2015, adel_ave_disp_2015, by = "Player")
-adel_2015 <- left_join(adel_2015, adel_ave_ins50_2015, by = "Player")
+gbg_stats_2015 <- left_join(gbg_stats_2015, avg_disp, by = "Player")
+gbg_stats_2015 <- left_join(gbg_stats_2015, avg_ins50, by = "Player")
 
 #################
 ##
