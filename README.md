@@ -7,3 +7,4 @@ The dataset will be intended to include mainly current players and only over the
 
 The main reference for the data is the public information hosted at the AFL statis tics URL: http://afltables.com/afl/afl_index.html
 
+Current commit as of Jan 10 is a full set of stats for all players, all teams and all rounds including finals for season 2015.

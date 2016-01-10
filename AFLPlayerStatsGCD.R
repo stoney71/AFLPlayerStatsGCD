@@ -79,39 +79,39 @@ clean_gbg_stats <- function(list_club_stats) {
         club_stats <- full_join(disp, kicks)
         marks <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Marks, -Player)
         club_stats <- full_join(club_stats, marks)
-        hballs <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Handballs, -Player)
+        hballs <- list_club_stats[[4]] %>% select(-Tot) %>% gather(Round, Handballs, -Player)
         club_stats <- full_join(club_stats, hballs)
-        goals <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Goals, -Player)
+        goals <- list_club_stats[[5]] %>% select(-Tot) %>% gather(Round, Goals, -Player)
         club_stats <- full_join(club_stats, goals)
-        behinds <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Behinds, -Player)
+        behinds <- list_club_stats[[6]] %>% select(-Tot) %>% gather(Round, Behinds, -Player)
         club_stats <- full_join(club_stats, behinds)
-        hitouts <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Hitouts, -Player)
+        hitouts <- list_club_stats[[7]] %>% select(-Tot) %>% gather(Round, Hitouts, -Player)
         club_stats <- full_join(club_stats, hitouts)
-        tackles <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Tackles, -Player)
+        tackles <- list_club_stats[[8]] %>% select(-Tot) %>% gather(Round, Tackles, -Player)
         club_stats <- full_join(club_stats, tackles)
-        r50s <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Rebound50s, -Player)
+        r50s <- list_club_stats[[9]] %>% select(-Tot) %>% gather(Round, Rebound50s, -Player)
         club_stats <- full_join(club_stats, r50s)
-        i50s <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Inside50s, -Player)
+        i50s <- list_club_stats[[10]] %>% select(-Tot) %>% gather(Round, Inside50s, -Player)
         club_stats <- full_join(club_stats, i50s)
-        clears <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Clearances, -Player)
+        clears <- list_club_stats[[11]] %>% select(-Tot) %>% gather(Round, Clearances, -Player)
         club_stats <- full_join(club_stats, clears)
-        clangs <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, Clangers, -Player)
+        clangs <- list_club_stats[[12]] %>% select(-Tot) %>% gather(Round, Clangers, -Player)
         club_stats <- full_join(club_stats, clangs)
-        frees_for <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, FreesFor, -Player)
+        frees_for <- list_club_stats[[13]] %>% select(-Tot) %>% gather(Round, FreesFor, -Player)
         club_stats <- full_join(club_stats, frees_for)
-        frees_ag <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, FreesAgainst, -Player)
+        frees_ag <- list_club_stats[[14]] %>% select(-Tot) %>% gather(Round, FreesAgainst, -Player)
         club_stats <- full_join(club_stats, frees_ag)
-        con_pos <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, ContendedPossessions, -Player)
+        con_pos <- list_club_stats[[15]] %>% select(-Tot) %>% gather(Round, ContendedPossessions, -Player)
         club_stats <- full_join(club_stats, con_pos)
-        uncon_pos <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, UncontendedPossessions, -Player)
+        uncon_pos <- list_club_stats[[16]] %>% select(-Tot) %>% gather(Round, UncontendedPossessions, -Player)
         club_stats <- full_join(club_stats, uncon_pos)
-        con_marks <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, ContestedMarks, -Player)
+        con_marks <- list_club_stats[[17]] %>% select(-Tot) %>% gather(Round, ContestedMarks, -Player)
         club_stats <- full_join(club_stats, con_marks)
-        marks_i50 <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, MarksInside50, -Player)
+        marks_i50 <- list_club_stats[[18]] %>% select(-Tot) %>% gather(Round, MarksInside50, -Player)
         club_stats <- full_join(club_stats, marks_i50)
-        one_pers <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, OnePercenters, -Player)
+        one_pers <- list_club_stats[[19]] %>% select(-Tot) %>% gather(Round, OnePercenters, -Player)
         club_stats <- full_join(club_stats, one_pers)
-        goal_ass <- list_club_stats[[3]] %>% select(-Tot) %>% gather(Round, GoalAssists, -Player)
+        goal_ass <- list_club_stats[[20]] %>% select(-Tot) %>% gather(Round, GoalAssists, -Player)
         club_stats <- full_join(club_stats, goal_ass)
         
         for (i in 3:ncol(club_stats)) {
@@ -133,8 +133,9 @@ colnames(gbg_stats_2015)[1] <- "Team"
 avg_disp <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Disposals = mean(Disposals))
 avg_ins50 <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Inside50s = mean(Inside50s))
 
-gbg_stats_2015 <- left_join(gbg_stats_2015, avg_disp, by = "Player")
-gbg_stats_2015 <- left_join(gbg_stats_2015, avg_ins50, by = "Player")
+gbg_stats_2015 <- left_join(gbg_stats_2015, avg_disp, by = c("Team", "Player"))
+gbg_stats_2015 <- left_join(gbg_stats_2015, avg_ins50, by = c("Team", "Player"))
+
 
 #################
 ##
@@ -152,31 +153,54 @@ if(!(file.exists("./files/rbr2015.html"))){
         download.file(rbr_url, destfile="./files/rbr2015.html")
 }
 
-rbr_2015 <- readHTMLTable("./files/rbr2015.html", stringsAsFactors = FALSE)
+list_raw_rbr_2015 <- readHTMLTable("./files/rbr2015.html", stringsAsFactors = FALSE)
 
-## clean rbr_2015 to make it a list of dataframes. Each dataframe is a Round. 
-## Remove all other entries in the list from rbr_2015.
-## At this point it omits Finals - to be added later.
+## clean list_raw_rbr_2015 to make it a list of dataframes. Each dataframe is a Round. 
+## Remove all other entries in the list from list_raw_rbr_2015.
 
-mylist <- lapply(rbr_2015, function(df) {
+## First, extract just the home and away rounds, removing everything else.
+
+mylist <- lapply(list_raw_rbr_2015, function(df) {
         return (dim(df)[1] > 18)
-}
-)
+})
 
 mylist <- as.vector(mylist, mode = "logical")
 mylist[is.na(mylist)] <- FALSE
-rbr_2015 <- rbr_2015[mylist]
-names(rbr_2015) <- paste("R", 1:23, sep = "")
+list_raw_home_away_2015 <- list_raw_rbr_2015[mylist]
+names(list_raw_home_away_2015) <- paste("R", 1:23, sep = "")
+
+## Next, extract the finals series and work on them separately.
+
+## list_raw_finals_2015 <- tail(list_raw_rbr_2015, n = 18)
+list_raw_finals_2015 <- readHTMLTable("./files/rbr2015.html", stringsAsFactors = FALSE,
+        which = (length(list_raw_rbr_2015) - 17):length(list_raw_rbr_2015), header = FALSE)
+mylist <- sapply(list_raw_finals_2015, function(df){
+        return (dim(df)[2] > 2)
+})
+
+list_raw_finals_2015 <- list_raw_finals_2015[mylist]
+names(list_raw_finals_2015) <- c("QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
+
+## Now, join the home and away list to the finals list
+
+list_raw_rbr_2015 <- list_raw_home_away_2015
+list_raw_rbr_2015[(length(list_raw_rbr_2015) + 1):(length(list_raw_rbr_2015) + 
+                length(list_raw_finals_2015))] <- list_raw_finals_2015
+names(list_raw_rbr_2015) <- c(paste("R", 1:23, sep = ""), "QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
+
 
 round_details <- function(df) {
         WinLoss <- rep(NA, nrow(df))
         Margin <- rep(NA, nrow(df))
         Opposition <- rep(NA, nrow(df))
+        Season <- rep(NA, nrow(df))
         Date <- rep(as.Date(NA), nrow(df))
         Venue <- rep(NA, nrow(df))
         for (i in 1:as.integer(nrow(df) / 2)) {
                 Date[2 * i - 1] <- as.Date(df$Remarks[2 * i - 1], format = "%a %d-%b-%Y")
                 Date[2 * i] <- as.Date(df$Remarks[2 * i - 1], format = "%a %d-%b-%Y")
+                Season[2 * i - 1] <- format(Date[2 * i - 1], "%Y")
+                Season[2 * i] <- format(Date[2 * i], "%Y")
                 Margin[2 * i - 1] <- df$Score[2 * i - 1] - df$Score[2 * i]
                 Margin[2 * i] <- df$Score[2 * i] - df$Score[2 * i - 1]
                 Opposition[2 * i - 1] <- df$Team[2 * i]
@@ -196,11 +220,11 @@ round_details <- function(df) {
                         WinLoss[2 * i] <- "D"
                 }
         }
-        data.frame(Date, WinLoss, Margin, Opposition, Venue)
+        data.frame(Season, Date, WinLoss, Margin, Opposition, Venue)
 }
 
-## Now create a list of 23 dataframes, each dataframe is a Round, in the desired format.
-rbr_2015_list <- lapply(rbr_2015, function(df) {
+## Now create a list of dataframes, each dataframe is a Round or Final, in the desired format.
+rbr_2015_list <- lapply(list_raw_rbr_2015, function(df) {
         r_res <- df %>% select(V1, V3, V4) %>% slice(1:18) %>% filter(!is.na(V4))
         names(r_res) <- c("Team", "Score", "Remarks")
         r_res$Score <- as.integer(r_res$Score)
@@ -208,7 +232,8 @@ rbr_2015_list <- lapply(rbr_2015, function(df) {
         r_res
 })
 
-## Now combine the list of 23 dataframes into 1 larger one.
+
+## Now combine the list of dataframes into 1 larger one.
 rbr_2015 <- ldply(rbr_2015_list)
 colnames(rbr_2015)[1] <- "Round"
 
@@ -221,9 +246,6 @@ colnames(rbr_2015)[1] <- "Round"
 ##
 #################
 
-## So far this is just for Adelaide.
 
-rbr_adel_2015 <- rbr_2015 %>% select (-Remarks) %>% filter(Team == "Adelaide")
-
-all_adel_2015 <- left_join(adel_2015, rbr_adel_2015, by = "Round")
+all_stats_2015 <- left_join(gbg_stats_2015, rbr_2015, by = c("Team", "Round"))
 
