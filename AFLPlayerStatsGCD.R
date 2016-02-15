@@ -26,32 +26,33 @@ clubs <- as.list(c("Adelaide", "Brisbane Lions", "Carlton", "Collingwood", "Esse
 ##
 #################
 
-load_gbg_stats <- function(club) {
+load_gbg_stats <- function(club, year = 2015) {
+        year <- as.character(year)
         ## special handling for 6 teams
         if (club == "Brisbane Lions") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/brisbanel/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/brisbanel/", year, "_gbg.html", sep = "")
         }
         else if (club == "Greater Western Sydney") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/gws/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/gws/", year, "_gbg.html", sep = "")
         }
         else if (club == "North Melbourne") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/kangaroos/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/kangaroos/", year, "_gbg.html", sep = "")
         }
         else if (club == "Port Adelaide") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/padelaide/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/padelaide/", year, "_gbg.html", sep = "")
         }
         else if (club == "Sydney") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/swans/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/swans/", year, "_gbg.html", sep = "")
         }
         else if (club == "Western Bulldogs") {
-                gbg_url <- "http://afltables.com/afl/stats/teams/bullldogs/2015_gbg.html"
+                gbg_url <- paste("http://afltables.com/afl/stats/teams/bullldogs/", year, "_gbg.html", sep = "")
         }
         else {
                 gbg_url <- paste("http://afltables.com/afl/stats/teams/", 
-                        tolower(gsub(" ", "", club)), "/2015_gbg.html", sep = "")
+                        tolower(gsub(" ", "", club)), "/", year, "_gbg.html", sep = "")
         }
         
-        gbg_filename <- paste("./files/", gsub(" ", "", club), "_GBG_2015.html", sep = "")
+        gbg_filename <- paste("./files/", gsub(" ", "", club), "_GBG_", year, ".html", sep = "")
         
         if (!file.exists(gbg_filename)) {
                 download.file(gbg_url, destfile = gbg_filename)
@@ -62,9 +63,23 @@ load_gbg_stats <- function(club) {
 list_raw_gbg_2015 <- lapply(clubs, load_gbg_stats)
 names(list_raw_gbg_2015) <- clubs
 
+list_raw_gbg_2014 <- lapply(clubs, load_gbg_stats, year = 2014)
+names(list_raw_gbg_2014) <- clubs
+
+list_raw_gbg_2013 <- lapply(clubs, load_gbg_stats, year = 2013)
+names(list_raw_gbg_2013) <- clubs
+
 ## remove unwanted stats (eg % game played, sub on/off etc) from each data fram within the lists:
 
 list_raw_gbg_2015 <- lapply(list_raw_gbg_2015, function(x) {
+        x <- x[-c(15, 21, 23, 24)]
+})
+
+list_raw_gbg_2014 <- lapply(list_raw_gbg_2014, function(x) {
+        x <- x[-c(15, 21, 23, 24)]
+})
+
+list_raw_gbg_2013 <- lapply(list_raw_gbg_2013, function(x) {
         x <- x[-c(15, 21, 23, 24)]
 })
 
@@ -123,18 +138,16 @@ clean_gbg_stats <- function(list_club_stats) {
 }
 
 list_gbg_2015 <- lapply(list_raw_gbg_2015, clean_gbg_stats)
-
 gbg_stats_2015 <- ldply(list_gbg_2015)
 colnames(gbg_stats_2015)[1] <- "Team"
 
+list_gbg_2014 <- lapply(list_raw_gbg_2014, clean_gbg_stats)
+gbg_stats_2014 <- ldply(list_gbg_2014)
+colnames(gbg_stats_2014)[1] <- "Team"
 
-## add mean disposals, kicks, handballs, Inside50s and other key stats
-
-avg_disp <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Disposals = mean(Disposals))
-avg_ins50 <- gbg_stats_2015 %>% group_by(Team, Player) %>% summarise(Avg.Inside50s = mean(Inside50s))
-
-gbg_stats_2015 <- left_join(gbg_stats_2015, avg_disp, by = c("Team", "Player"))
-gbg_stats_2015 <- left_join(gbg_stats_2015, avg_ins50, by = c("Team", "Player"))
+list_gbg_2013 <- lapply(list_raw_gbg_2013, clean_gbg_stats)
+gbg_stats_2013 <- ldply(list_gbg_2013)
+colnames(gbg_stats_2013)[1] <- "Team"
 
 
 #################
@@ -145,7 +158,6 @@ gbg_stats_2015 <- left_join(gbg_stats_2015, avg_ins50, by = c("Team", "Player"))
 ##
 #################
 
-## So far this is just for 2015
 
 rbr_url <- "http://afltables.com/afl/seas/2015.html"
 
@@ -155,8 +167,25 @@ if(!(file.exists("./files/rbr2015.html"))){
 
 list_raw_rbr_2015 <- readHTMLTable("./files/rbr2015.html", stringsAsFactors = FALSE)
 
-## clean list_raw_rbr_2015 to make it a list of dataframes. Each dataframe is a Round. 
-## Remove all other entries in the list from list_raw_rbr_2015.
+rbr_url <- "http://afltables.com/afl/seas/2014.html"
+
+if(!(file.exists("./files/rbr2014.html"))){
+        download.file(rbr_url, destfile="./files/rbr2014.html")
+}
+
+list_raw_rbr_2014 <- readHTMLTable("./files/rbr2014.html", stringsAsFactors = FALSE)
+
+rbr_url <- "http://afltables.com/afl/seas/2013.html"
+
+if(!(file.exists("./files/rbr2013.html"))){
+        download.file(rbr_url, destfile="./files/rbr2013.html")
+}
+
+list_raw_rbr_2013 <- readHTMLTable("./files/rbr2013.html", stringsAsFactors = FALSE)
+
+
+## clean list_raw_rbr_YYYY to make each a list of dataframes. Each dataframe is a Round. 
+## Remove all other entries in the list from list_raw_rbr_YYYY.
 
 ## First, extract just the home and away rounds, removing everything else.
 
@@ -164,10 +193,28 @@ mylist <- lapply(list_raw_rbr_2015, function(df) {
         return (dim(df)[1] > 18)
 })
 
+mylist2014 <- lapply(list_raw_rbr_2014, function(df) {
+        return (dim(df)[1] > 18)
+})
+
+mylist2013 <- lapply(list_raw_rbr_2013, function(df) {
+        return (dim(df)[1] > 18)
+})
+
 mylist <- as.vector(mylist, mode = "logical")
 mylist[is.na(mylist)] <- FALSE
 list_raw_home_away_2015 <- list_raw_rbr_2015[mylist]
 names(list_raw_home_away_2015) <- paste("R", 1:23, sep = "")
+
+mylist2014 <- as.vector(mylist2014, mode = "logical")
+mylist2014[is.na(mylist2014)] <- FALSE
+list_raw_home_away_2014 <- list_raw_rbr_2014[mylist2014]
+names(list_raw_home_away_2014) <- paste("R", 1:23, sep = "")
+
+mylist2013 <- as.vector(mylist2013, mode = "logical")
+mylist2013[is.na(mylist2013)] <- FALSE
+list_raw_home_away_2013 <- list_raw_rbr_2013[mylist2013]
+names(list_raw_home_away_2013) <- paste("R", 1:23, sep = "")
 
 ## Next, extract the finals series and work on them separately.
 
@@ -178,7 +225,25 @@ mylist <- sapply(list_raw_finals_2015, function(df){
         return (dim(df)[2] > 2)
 })
 
+list_raw_finals_2014 <- readHTMLTable("./files/rbr2014.html", stringsAsFactors = FALSE,
+        which = (length(list_raw_rbr_2014) - 17):length(list_raw_rbr_2014), header = FALSE)
+mylist2014 <- sapply(list_raw_finals_2014, function(df){
+        return (dim(df)[2] > 2)
+})
+
+list_raw_finals_2013 <- readHTMLTable("./files/rbr2013.html", stringsAsFactors = FALSE,
+        which = (length(list_raw_rbr_2013) - 17):length(list_raw_rbr_2013), header = FALSE)
+mylist2013 <- sapply(list_raw_finals_2013, function(df){
+        return (dim(df)[2] > 2)
+})
+
 list_raw_finals_2015 <- list_raw_finals_2015[mylist]
+names(list_raw_finals_2015) <- c("QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
+
+list_raw_finals_2014 <- list_raw_finals_2014[mylist2014]
+names(list_raw_finals_2015) <- c("QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
+
+list_raw_finals_2013 <- list_raw_finals_2013[mylist2014]
 names(list_raw_finals_2015) <- c("QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
 
 ## Now, join the home and away list to the finals list
@@ -188,6 +253,15 @@ list_raw_rbr_2015[(length(list_raw_rbr_2015) + 1):(length(list_raw_rbr_2015) +
                 length(list_raw_finals_2015))] <- list_raw_finals_2015
 names(list_raw_rbr_2015) <- c(paste("R", 1:23, sep = ""), "QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
 
+list_raw_rbr_2014 <- list_raw_home_away_2014
+list_raw_rbr_2014[(length(list_raw_rbr_2014) + 1):(length(list_raw_rbr_2014) + 
+                length(list_raw_finals_2014))] <- list_raw_finals_2014
+names(list_raw_rbr_2014) <- c(paste("R", 1:23, sep = ""), "QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
+
+list_raw_rbr_2013 <- list_raw_home_away_2013
+list_raw_rbr_2013[(length(list_raw_rbr_2013) + 1):(length(list_raw_rbr_2013) + 
+                length(list_raw_finals_2013))] <- list_raw_finals_2013
+names(list_raw_rbr_2013) <- c(paste("R", 1:23, sep = ""), "QF", "QF", "EF", "EF", "SF", "SF", "PF", "PF", "GF")
 
 round_details <- function(df) {
         WinLoss <- rep(NA, nrow(df))
@@ -232,20 +306,45 @@ rbr_2015_list <- lapply(list_raw_rbr_2015, function(df) {
         r_res
 })
 
+rbr_2014_list <- lapply(list_raw_rbr_2014, function(df) {
+        r_res <- df %>% select(V1, V3, V4) %>% slice(1:18) %>% filter(!is.na(V4))
+        names(r_res) <- c("Team", "Score", "Remarks")
+        r_res$Score <- as.integer(r_res$Score)
+        r_res <- bind_cols(r_res, round_details(r_res))
+        r_res
+})
+
+rbr_2013_list <- lapply(list_raw_rbr_2013, function(df) {
+        r_res <- df %>% select(V1, V3, V4) %>% slice(1:18) %>% filter(!is.na(V4))
+        names(r_res) <- c("Team", "Score", "Remarks")
+        r_res$Score <- as.integer(r_res$Score)
+        r_res <- bind_cols(r_res, round_details(r_res))
+        r_res
+})
 
 ## Now combine the list of dataframes into 1 larger one.
 rbr_2015 <- ldply(rbr_2015_list)
 colnames(rbr_2015)[1] <- "Round"
 
+rbr_2014 <- ldply(rbr_2014_list)
+colnames(rbr_2014)[1] <- "Round"
+
+rbr_2013 <- ldply(rbr_2013_list)
+colnames(rbr_2013)[1] <- "Round"
 
 #################
 ##
 ##  Section 4
 ##
-##  Combine Game by Game with Round by Round
+##  Combine Game by Game with Round by Round & Combine all 3 years & Write CSV file.
 ##
 #################
 
 
 all_stats_2015 <- left_join(gbg_stats_2015, rbr_2015, by = c("Team", "Round"))
+all_stats_2014 <- left_join(gbg_stats_2014, rbr_2014, by = c("Team", "Round"))
+all_stats_2013 <- left_join(gbg_stats_2013, rbr_2013, by = c("Team", "Round"))
 
+all_stats_2013_2015 <- all_stats_2015 %>% bind_rows(all_stats_2014) %>% bind_rows(all_stats_2013)
+
+write.csv(x = all_stats_2013_2015, file = "./all_stats_2013_2015.csv", sep = "|")
