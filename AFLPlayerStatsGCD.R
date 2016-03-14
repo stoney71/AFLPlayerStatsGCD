@@ -347,4 +347,13 @@ all_stats_2013 <- left_join(gbg_stats_2013, rbr_2013, by = c("Team", "Round"))
 
 all_stats_2013_2015 <- all_stats_2015 %>% bind_rows(all_stats_2014) %>% bind_rows(all_stats_2013)
 
+# Mar 2016, adjusted for players sharing names: Thompson, Kennedy, Lynch
+
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Thompson, Scott" & all_stats_2013_2015$Team == "Adelaide"] <- "Thompson, Scott"
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Thompson, Scott" & all_stats_2013_2015$Team == "North Melbourne"] <- "Thompson, Scott D"
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Lynch, Tom" & all_stats_2013_2015$Team == "Adelaide"] <- "Lynch, Tom T"
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Lynch, Tom" & all_stats_2013_2015$Team == "Gold Coast"] <- "Lynch, Tom J"
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Kennedy, Josh" & all_stats_2013_2015$Team == "West Coast"] <- "Kennedy, Josh J"
+all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Kennedy, Josh" & all_stats_2013_2015$Team == "Sydney"] <- "Kennedy, Josh P"
+
 write.csv(x = all_stats_2013_2015, file = "./all_stats_2013_2015.csv", sep = "|")
