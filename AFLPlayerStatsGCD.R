@@ -60,6 +60,9 @@ load_gbg_stats <- function(club, year = 2015) {
         return(readHTMLTable(gbg_filename, stringsAsFactors = FALSE))
 }
 
+list_raw_gbg_2016 <- lapply(clubs, load_gbg_stats, year = 2016)
+names(list_raw_gbg_2016) <- clubs
+
 list_raw_gbg_2015 <- lapply(clubs, load_gbg_stats)
 names(list_raw_gbg_2015) <- clubs
 
@@ -70,6 +73,10 @@ list_raw_gbg_2013 <- lapply(clubs, load_gbg_stats, year = 2013)
 names(list_raw_gbg_2013) <- clubs
 
 ## remove unwanted stats (eg % game played, sub on/off etc) from each data fram within the lists:
+
+list_raw_gbg_2016 <- lapply(list_raw_gbg_2016, function(x) {
+        x <- x[-c(15, 21, 23, 24)]
+})
 
 list_raw_gbg_2015 <- lapply(list_raw_gbg_2015, function(x) {
         x <- x[-c(15, 21, 23, 24)]
@@ -137,6 +144,10 @@ clean_gbg_stats <- function(list_club_stats) {
         club_stats <- club_stats[rowSums(club_stats[, 3:ncol(club_stats)]) > 0, ]
 }
 
+list_gbg_2016 <- lapply(list_raw_gbg_2016, clean_gbg_stats)
+gbg_stats_2016 <- ldply(list_gbg_2016)
+colnames(gbg_stats_2016)[1] <- "Team"
+
 list_gbg_2015 <- lapply(list_raw_gbg_2015, clean_gbg_stats)
 gbg_stats_2015 <- ldply(list_gbg_2015)
 colnames(gbg_stats_2015)[1] <- "Team"
@@ -158,6 +169,13 @@ colnames(gbg_stats_2013)[1] <- "Team"
 ##
 #################
 
+rbr_url <- "http://afltables.com/afl/seas/2016.html"
+
+if(!(file.exists("./files/rbr2016.html"))){
+        download.file(rbr_url, destfile="./files/rbr2016.html")
+}
+
+list_raw_rbr_2016 <- readHTMLTable("./files/rbr2016.html", stringsAsFactors = FALSE)
 
 rbr_url <- "http://afltables.com/afl/seas/2015.html"
 
@@ -189,7 +207,11 @@ list_raw_rbr_2013 <- readHTMLTable("./files/rbr2013.html", stringsAsFactors = FA
 
 ## First, extract just the home and away rounds, removing everything else.
 
-mylist <- lapply(list_raw_rbr_2015, function(df) {
+mylist2016 <- lapply(list_raw_rbr_2016, function(df) {
+        return (dim(df)[1] > 18)
+})
+
+mylist2015 <- lapply(list_raw_rbr_2015, function(df) {
         return (dim(df)[1] > 18)
 })
 
@@ -201,9 +223,17 @@ mylist2013 <- lapply(list_raw_rbr_2013, function(df) {
         return (dim(df)[1] > 18)
 })
 
-mylist <- as.vector(mylist, mode = "logical")
-mylist[is.na(mylist)] <- FALSE
-list_raw_home_away_2015 <- list_raw_rbr_2015[mylist]
+mylist2016 <- as.vector(mylist2016, mode = "logical")
+mylist2016[is.na(mylist2016)] <- FALSE
+# these next rows will need to be updated every Round
+## list_raw_home_away_2016 <- list_raw_rbr_2016[mylist2016]
+## names(list_raw_home_away_2016) <- paste("R", 1:23, sep = "")
+list_raw_home_away_2016 <- list_raw_rbr_2016[2]
+names(list_raw_home_away_2016) <- paste("R", 1:1, sep = "")
+
+mylist2015 <- as.vector(mylist2015, mode = "logical")
+mylist2015[is.na(mylist2015)] <- FALSE
+list_raw_home_away_2015 <- list_raw_rbr_2015[mylist2015]
 names(list_raw_home_away_2015) <- paste("R", 1:23, sep = "")
 
 mylist2014 <- as.vector(mylist2014, mode = "logical")
@@ -217,6 +247,8 @@ list_raw_home_away_2013 <- list_raw_rbr_2013[mylist2013]
 names(list_raw_home_away_2013) <- paste("R", 1:23, sep = "")
 
 ## Next, extract the finals series and work on them separately.
+
+## This will be added for 2016 when finals start
 
 ## list_raw_finals_2015 <- tail(list_raw_rbr_2015, n = 18)
 list_raw_finals_2015 <- readHTMLTable("./files/rbr2015.html", stringsAsFactors = FALSE,
@@ -298,6 +330,16 @@ round_details <- function(df) {
 }
 
 ## Now create a list of dataframes, each dataframe is a Round or Final, in the desired format.
+
+rbr_2016_list <- lapply(list_raw_home_away_2016, function(df) {
+        r_res <- df %>% select(V1, V3, V4) %>% slice(1:18) %>% filter(!is.na(V4))
+        names(r_res) <- c("Team", "Score", "Remarks")
+        r_res$Score <- as.integer(r_res$Score)
+        r_res <- bind_cols(r_res, round_details(r_res))
+        r_res
+})
+
+
 rbr_2015_list <- lapply(list_raw_rbr_2015, function(df) {
         r_res <- df %>% select(V1, V3, V4) %>% slice(1:18) %>% filter(!is.na(V4))
         names(r_res) <- c("Team", "Score", "Remarks")
@@ -323,6 +365,10 @@ rbr_2013_list <- lapply(list_raw_rbr_2013, function(df) {
 })
 
 ## Now combine the list of dataframes into 1 larger one.
+
+rbr_2016 <- ldply(rbr_2016_list)
+colnames(rbr_2016)[1] <- "Round"
+
 rbr_2015 <- ldply(rbr_2015_list)
 colnames(rbr_2015)[1] <- "Round"
 
@@ -340,20 +386,21 @@ colnames(rbr_2013)[1] <- "Round"
 ##
 #################
 
-
+all_stats_2016 <- left_join(gbg_stats_2016, rbr_2016, by = c("Team", "Round"))
 all_stats_2015 <- left_join(gbg_stats_2015, rbr_2015, by = c("Team", "Round"))
 all_stats_2014 <- left_join(gbg_stats_2014, rbr_2014, by = c("Team", "Round"))
 all_stats_2013 <- left_join(gbg_stats_2013, rbr_2013, by = c("Team", "Round"))
 
-all_stats_2013_2015 <- all_stats_2015 %>% bind_rows(all_stats_2014) %>% bind_rows(all_stats_2013)
+all_stats_2013_2016 <- all_stats_2016 %>% bind_rows(all_stats_2015) %>%
+        bind_rows(all_stats_2014) %>% bind_rows(all_stats_2013)
 
 # Mar 2016, adjusted for players sharing names: Thompson, Kennedy, Lynch
 
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Thompson, Scott" & all_stats_2013_2015$Team == "Adelaide"] <- "Thompson, Scott"
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Thompson, Scott" & all_stats_2013_2015$Team == "North Melbourne"] <- "Thompson, Scott D"
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Lynch, Tom" & all_stats_2013_2015$Team == "Adelaide"] <- "Lynch, Tom T"
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Lynch, Tom" & all_stats_2013_2015$Team == "Gold Coast"] <- "Lynch, Tom J"
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Kennedy, Josh" & all_stats_2013_2015$Team == "West Coast"] <- "Kennedy, Josh J"
-all_stats_2013_2015$Player[all_stats_2013_2015$Player == "Kennedy, Josh" & all_stats_2013_2015$Team == "Sydney"] <- "Kennedy, Josh P"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Thompson, Scott" & all_stats_2013_2016$Team == "Adelaide"] <- "Thompson, Scott"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Thompson, Scott" & all_stats_2013_2016$Team == "North Melbourne"] <- "Thompson, Scott D"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Lynch, Tom" & all_stats_2013_2016$Team == "Adelaide"] <- "Lynch, Tom T"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Lynch, Tom" & all_stats_2013_2016$Team == "Gold Coast"] <- "Lynch, Tom J"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Kennedy, Josh" & all_stats_2013_2016$Team == "West Coast"] <- "Kennedy, Josh J"
+all_stats_2013_2016$Player[all_stats_2013_2016$Player == "Kennedy, Josh" & all_stats_2013_2016$Team == "Sydney"] <- "Kennedy, Josh P"
 
-write.csv(x = all_stats_2013_2015, file = "./all_stats_2013_2015.csv", sep = "|")
+write.csv(x = all_stats_2013_2016, file = "./all_stats_2013_2016.csv")
